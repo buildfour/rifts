@@ -1,0 +1,48 @@
+version: 1
+
+# AWS Amplify Build Configuration
+# Summoner's Chronicle - Static Site Build
+
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Summoner's Chronicle - Starting build process"
+        - echo "Branch: $AWS_BRANCH"
+        - echo "Build ID: $AWS_JOB_ID"
+
+    build:
+      commands:
+        - echo "No build step required - static HTML site"
+        - echo "Files are ready for deployment"
+        - ls -la index.html
+
+    postBuild:
+      commands:
+        - echo "Build completed successfully"
+        - echo "Deployment URL will be available at: https://$AWS_BRANCH.$AWS_APP_ID.amplifyapp.com"
+
+  artifacts:
+    baseDirectory: /
+    files:
+      - '**/*'
+
+  cache:
+    paths: []
+
+# Branch-specific settings
+branches:
+  web-app:
+    environment:
+      ENVIRONMENT: production
+      API_ENDPOINT: https://api.riftsage.com/v1
+
+  dev:
+    environment:
+      ENVIRONMENT: development
+      API_ENDPOINT: https://dev-api.riftsage.com/v1
+
+  staging:
+    environment:
+      ENVIRONMENT: staging
+      API_ENDPOINT: https://staging-api.riftsage.com/v1
