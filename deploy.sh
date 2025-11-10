@@ -115,11 +115,11 @@ deploy_to_amplify() {
         # Create branch
         aws amplify create-branch \
             --app-id $APP_ID \
-            --branch-name main \
+            --branch-name web-app \
             --region $REGION \
             --enable-auto-build
 
-        print_success "Branch 'main' created"
+        print_success "Branch 'web-app' created"
     else
         print_info "Using existing Amplify app: $APP_ID"
     fi
@@ -132,7 +132,7 @@ deploy_to_amplify() {
     print_info "Starting deployment..."
     aws amplify start-deployment \
         --app-id $APP_ID \
-        --branch-name main \
+        --branch-name web-app \
         --region $REGION \
         --source-url "deployment.zip" || true
 
@@ -140,7 +140,7 @@ deploy_to_amplify() {
     rm -f deployment.zip
 
     # Get app URL
-    APP_URL="https://main.$APP_ID.amplifyapp.com"
+    APP_URL="https://web-app.$APP_ID.amplifyapp.com"
     print_success "Deployment initiated!"
     print_info "App URL: $APP_URL"
 }

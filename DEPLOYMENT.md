@@ -174,7 +174,7 @@ See [S3 + CloudFront Deployment](#s3--cloudfront-deployment)
    - Choose "GitHub" as source
    - Authorize AWS Amplify
    - Select repository: `buildfour/rifts`
-   - Select branch: `main`
+   - Select branch: `web-app`
 
 3. **Configure Build Settings**
    ```yaml
@@ -211,7 +211,7 @@ APP_ID=<your-app-id>
 # Create branch
 aws amplify create-branch \
     --app-id $APP_ID \
-    --branch-name main \
+    --branch-name web-app \
     --enable-auto-build
 
 # Create deployment
@@ -219,7 +219,7 @@ zip -r deployment.zip index.html bg.jpg
 
 aws amplify start-deployment \
     --app-id $APP_ID \
-    --branch-name main \
+    --branch-name web-app \
     --source-url deployment.zip
 ```
 
@@ -230,7 +230,7 @@ aws amplify start-deployment \
    aws amplify create-domain-association \
        --app-id $APP_ID \
        --domain-name summoners-chronicle.com \
-       --sub-domain-settings prefix=www,branchName=main
+       --sub-domain-settings prefix=www,branchName=web-app
    ```
 
 2. **Update DNS**
@@ -580,12 +580,12 @@ const API_BASE = API_ENDPOINTS[process.env.ENVIRONMENT || 'production'];
 
 ```bash
 # List deployments
-aws amplify list-jobs --app-id $APP_ID --branch-name main
+aws amplify list-jobs --app-id $APP_ID --branch-name web-app
 
 # Redeploy previous version
 aws amplify start-job \
     --app-id $APP_ID \
-    --branch-name main \
+    --branch-name web-app \
     --job-type RELEASE \
     --job-reason "Rollback to previous version"
 ```
