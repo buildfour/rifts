@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summoner's Chronicle - Your League of Legends Journey</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS VARIABLES ===== */
+        :root {
+            /* Color Palette - Summoner's Chronicle Brand */
+            --oxford-blue: #14213D;
+            --navy-dark: #0A1421;
+            --aquamarine: #7FFFD4;
+            --peach: #FFDAB9;
+            --lol-gold: #C89B3C;
+
+            /* Text Colors */
+            --text-primary: #F0E6D2;
+            --text-secondary: #9D7C57;
+            --text-muted: #6B6B6B;
+
+            /* UI Colors */
+            --card-bg: #1E2328;
+            --border-color: rgba(127, 255, 212, 0.2);
+            --success: #27AE60;
+            --warning: #F39C12;
+            --error: #DC2626;
+
+            /* Layout */
+            --sidebar-width: 280px;
+            --topbar-height: 70px;
+
+            /* Spacing (8px base unit) */
+            --spacing-xs: 8px;
+            --spacing-s: 16px;
+            --spacing-m: 24px;
+            --spacing-l: 32px;
+            --spacing-xl: 48px;
+            --spacing-xxl: 64px;
+
+            /* Border Radius */
+            --radius-small: 8px;
+            --radius-medium: 12px;
+            --radius-large: 20px;
+            --radius-pill: 50px;
+
+            /* Transitions */
+            --transition-fast: 0.2s ease;
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== GLOBAL RESET ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--navy-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background with Image Overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('bg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            opacity: 0.15;
+            z-index: -2;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg,
+                rgba(20, 33, 61, 0.95) 0%,
+                rgba(10, 20, 33, 0.98) 50%,
+                rgba(20, 33, 61, 0.95) 100%);
+            z-index: -1;
+        }
+
+        /* ===== LAYOUT STRUCTURE ===== */
+        .app-layout {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: var(--topbar-height) 1fr;
+            min-height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            grid-row: 1 / -1;
+            background: rgba(20, 33, 61, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-color);
+            padding: var(--spacing-m) 0;
+            position: fixed;
+            height: 100vh;
+            width: var(--sidebar-width);
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform var(--transition-smooth);
+        }
+
+        .sidebar-header {
+            padding: 0 var(--spacing-m);
+            margin-bottom: var(--spacing-l);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--lol-gold), var(--aquamarine));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--spacing-xs);
+            line-height: 1.2;
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        .nav-section {
+            margin-bottom: var(--spacing-m);
+        }
+
+        .nav-section-title {
+            padding: 0 var(--spacing-m);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: var(--spacing-s);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-s);
+            padding: var(--spacing-s) var(--spacing-m);
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .nav-item:hover {
+            background: rgba(127, 255, 212, 0.08);
+            color: var(--aquamarine);
+            border-left-color: var(--aquamarine);
+            padding-left: calc(var(--spacing-m) + 4px);
+        }
+
+        .nav-item.active {
+            background: rgba(127, 255, 212, 0.12);
+            color: var(--aquamarine);
+            border-left-color: var(--aquamarine);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            width: 20px;
+            text-align: center;
+            opacity: 0.9;
+        }
+
+        /* ===== TOPBAR ===== */
+        .topbar {
+            background: rgba(20, 33, 61, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--spacing-l);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: var(--topbar-height);
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-m);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--aquamarine);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: var(--spacing-xs);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--lol-gold);
+        }
+
+        .page-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-m);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-s);
+            padding: var(--spacing-xs) var(--spacing-s);
+            background: rgba(30, 35, 40, 0.6);
+            border-radius: var(--radius-small);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: 1px solid var(--border-color);
+        }
+
+        .user-profile:hover {
+            background: rgba(30, 35, 40, 0.8);
+            border-color: var(--aquamarine);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--aquamarine), var(--lol-gold));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--oxford-blue);
+        }
+
+        .user-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            padding: var(--spacing-l);
+            overflow-y: auto;
+            height: calc(100vh - var(--topbar-height));
+        }
+
+        .content-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ===== PAGE MANAGEMENT ===== */
+        .page-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== STAT CARDS ===== */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--spacing-m);
+            margin-bottom: var(--spacing-l);
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-m);
+            transition: all var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--aquamarine), var(--lol-gold));
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(127, 255, 212, 0.2);
+            border-color: var(--aquamarine);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-s);
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+            opacity: 0.8;
+        }
+
+        .stat-trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .trend-up {
+            color: var(--success);
+            background: rgba(39, 174, 96, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--aquamarine);
+            margin-bottom: var(--spacing-xs);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--lol-gold);
+            margin-bottom: var(--spacing-xs);
+            font-weight: 600;
+        }
+
+        .stat-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* ===== CONTENT SECTIONS ===== */
+        .content-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-l);
+            margin-bottom: var(--spacing-m);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-s);
+            margin-bottom: var(--spacing-m);
+            padding-bottom: var(--spacing-s);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--lol-gold);
+        }
+
+        .section-icon {
+            font-size: 1.5rem;
+            color: var(--aquamarine);
+        }
+
+        /* ===== LISTS ===== */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-s);
+            padding: var(--spacing-s) 0;
+            border-bottom: 1px solid rgba(127, 255, 212, 0.1);
+            color: var(--text-primary);
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .insight-icon {
+            color: var(--aquamarine);
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* ===== PROGRESS BARS ===== */
+        .progress-item {
+            margin-bottom: var(--spacing-m);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .progress-label {
+            font-weight: 600;
+            color: var(--lol-gold);
+        }
+
+        .progress-percentage {
+            font-size: 0.875rem;
+            color: var(--aquamarine);
+            font-weight: 600;
+        }
+
+        .progress-track {
+            height: 10px;
+            background: rgba(30, 35, 40, 0.8);
+            border-radius: var(--radius-small);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--aquamarine), var(--lol-gold));
+            border-radius: var(--radius-small);
+            transition: width 1.5s ease-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* ===== CHAMPION GRID ===== */
+        .champion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: var(--spacing-m);
+            margin-bottom: var(--spacing-l);
+        }
+
+        .champion-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-m);
+            text-align: center;
+            transition: all var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .champion-item:hover {
+            transform: translateY(-4px);
+            border-color: var(--aquamarine);
+            box-shadow: 0 10px 25px rgba(127, 255, 212, 0.15);
+        }
+
+        .champion-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--aquamarine), var(--lol-gold));
+            margin: 0 auto var(--spacing-s);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: var(--oxford-blue);
+            font-weight: 700;
+        }
+
+        .champion-name {
+            font-weight: 700;
+            color: var(--lol-gold);
+            margin-bottom: var(--spacing-xs);
+            font-size: 1.1rem;
+        }
+
+        .champion-stats {
+            font-size: 0.875rem;
+            color: var(--aquamarine);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .champion-insight {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* ===== ACHIEVEMENT GRID ===== */
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: var(--spacing-m);
+            margin-bottom: var(--spacing-l);
+        }
+
+        .achievement-badge {
+            background: var(--card-bg);
+            border: 2px solid var(--lol-gold);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-m);
+            text-align: center;
+            transition: all var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .achievement-badge:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(200, 155, 60, 0.3);
+        }
+
+        .badge-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-s);
+        }
+
+        .badge-title {
+            font-weight: 700;
+            color: var(--lol-gold);
+            margin-bottom: var(--spacing-xs);
+            font-size: 1.1rem;
+        }
+
+        .badge-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* ===== QUOTE BLOCK ===== */
+        .quote-block {
+            background: linear-gradient(135deg,
+                rgba(127, 255, 212, 0.08),
+                rgba(200, 155, 60, 0.08));
+            border-left: 4px solid var(--aquamarine);
+            padding: var(--spacing-l);
+            border-radius: 0 var(--radius-medium) var(--radius-medium) 0;
+            margin: var(--spacing-l) 0;
+            position: relative;
+        }
+
+        .quote-block::before {
+            content: '"';
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            font-size: 4rem;
+            color: var(--aquamarine);
+            opacity: 0.2;
+            font-family: Georgia, serif;
+        }
+
+        .quote-text {
+            font-size: 1.125rem;
+            font-style: italic;
+            color: var(--text-primary);
+            margin-left: var(--spacing-l);
+            line-height: 1.6;
+        }
+
+        /* ===== GOAL CARDS ===== */
+        .goals-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-m);
+            margin-bottom: var(--spacing-l);
+        }
+
+        .goal-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-l);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-smooth);
+        }
+
+        .goal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--aquamarine), var(--lol-gold));
+        }
+
+        .goal-card:hover {
+            transform: translateX(8px);
+            border-color: var(--aquamarine);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-s);
+        }
+
+        .goal-title {
+            color: var(--lol-gold);
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .goal-target {
+            color: var(--aquamarine);
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .goal-insight {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-smooth);
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        @media (max-width: 1024px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .main-content {
+                padding: var(--spacing-m);
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .topbar {
+                padding: 0 var(--spacing-s);
+            }
+
+            .page-title {
+                font-size: 1.2rem;
+            }
+
+            .user-name {
+                display: none;
+            }
+
+            .stat-card {
+                padding: var(--spacing-s);
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+        }
+
+        /* ===== LOADING ANIMATIONS ===== */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* ===== SCROLLBAR STYLING ===== */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(30, 35, 40, 0.3);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--aquamarine);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--lol-gold);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- App Layout -->
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">SUMMONER'S<br>CHRONICLE</div>
+                <div class="logo-subtitle">Your Path to Mastery</div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Dashboard</div>
+                <a class="nav-item active" data-page="overview">
+                    <span class="nav-icon">📊</span>
+                    <span>Overview</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Performance</div>
+                <a class="nav-item" data-page="performance">
+                    <span class="nav-icon">📈</span>
+                    <span>Performance</span>
+                </a>
+                <a class="nav-item" data-page="champions">
+                    <span class="nav-icon">⚔️</span>
+                    <span>Champions</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Analytics</div>
+                <a class="nav-item" data-page="team-impact">
+                    <span class="nav-icon">👥</span>
+                    <span>Team Impact</span>
+                </a>
+                <a class="nav-item" data-page="growth">
+                    <span class="nav-icon">📈</span>
+                    <span>Growth</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Achievements</div>
+                <a class="nav-item" data-page="achievements">
+                    <span class="nav-icon">🏆</span>
+                    <span>Achievements</span>
+                </a>
+                <a class="nav-item" data-page="future-goals">
+                    <span class="nav-icon">🌅</span>
+                    <span>Future Goals</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+                <div>
+                    <div class="page-title" id="pageTitle">Dashboard Overview</div>
+                    <div class="page-subtitle" id="pageSubtitle">Your journey through the Rift</div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="user-profile">
+                    <div class="user-avatar">S</div>
+                    <div class="user-name">Summoner</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-container">
+
+                <!-- OVERVIEW PAGE -->
+                <div id="overview" class="page-content active">
+                    <div class="dashboard-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🎮</div>
+                                <div class="stat-trend trend-up">+12%</div>
+                            </div>
+                            <div class="stat-value">847</div>
+                            <div class="stat-label">Games Played</div>
+                            <div class="stat-description">Dedication unmatched this season</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">📈</div>
+                                <div class="stat-trend trend-up">+8%</div>
+                            </div>
+                            <div class="stat-value">53.2%</div>
+                            <div class="stat-label">Win Rate</div>
+                            <div class="stat-description">Steady improvement over time</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🏆</div>
+                                <div class="stat-trend trend-up">+4</div>
+                            </div>
+                            <div class="stat-value">4</div>
+                            <div class="stat-label">Ranks Climbed</div>
+                            <div class="stat-description">From Gold IV to Platinum III</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">⭐</div>
+                                <div class="stat-trend trend-up">+15%</div>
+                            </div>
+                            <div class="stat-value">2,450</div>
+                            <div class="stat-label">LP Gained</div>
+                            <div class="stat-description">Consistent upward trajectory</div>
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <div class="section-header">
+                            <div class="section-icon">🎯</div>
+                            <div class="section-title">Key Milestones</div>
+                        </div>
+                        <ul class="insight-list">
+                            <li class="insight-item">
+                                <div class="insight-icon">🏆</div>
+                                <div>Achieved Platinum rank for the first time this season</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">⚔️</div>
+                                <div>Won 450+ games across all roles</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">📈</div>
+                                <div>Improved KDA from 2.1 to 3.8</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">🎮</div>
+                                <div>Mastered 8 new champions to 60%+ win rate</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">👥</div>
+                                <div>Played with 200+ unique teammates</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="quote-block">
+                        <div class="quote-text">Your journey through the Rift this year has been nothing short of remarkable. Each game was a chapter; each victory, a verse in your story of improvement.</div>
+                    </div>
+                </div>
+
+                <!-- PERFORMANCE PAGE -->
+                <div id="performance" class="page-content">
+                    <div class="dashboard-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">⚔️</div>
+                                <div class="stat-trend trend-up">+71%</div>
+                            </div>
+                            <div class="stat-value">3.8</div>
+                            <div class="stat-label">Average KDA</div>
+                            <div class="stat-description">71% improvement from last year</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🎯</div>
+                                <div class="stat-trend trend-up">+25%</div>
+                            </div>
+                            <div class="stat-value">7.2</div>
+                            <div class="stat-label">Kills per Game</div>
+                            <div class="stat-description">Aggressive playstyle mastery</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🤝</div>
+                                <div class="stat-trend trend-up">+18%</div>
+                            </div>
+                            <div class="stat-value">6.8</div>
+                            <div class="stat-label">Assists per Game</div>
+                            <div class="stat-description">Team-focused execution</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-trend trend-up">+32%</div>
+                            </div>
+                            <div class="stat-value">15.3</div>
+                            <div class="stat-label">CS per Minute</div>
+                            <div class="stat-description">Peak farming efficiency</div>
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <div class="section-header">
+                            <div class="section-icon">🎯</div>
+                            <div class="section-title">Role Performance</div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">ADC (Bottom)</div>
+                                <div class="progress-percentage">65% Win Rate</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 65%"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Mid Lane</div>
+                                <div class="progress-percentage">58% Win Rate</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 58%"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Support</div>
+                                <div class="progress-percentage">52% Win Rate</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 52%"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Jungle</div>
+                                <div class="progress-percentage">48% Win Rate</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 48%"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Top Lane</div>
+                                <div class="progress-percentage">45% Win Rate</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 45%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quote-block">
+                        <div class="quote-text">Your 3.8 KDA and 7.2 kills per game demonstrate mastery of aggressive positioning while maintaining survival. This balance between impact and safety has been crucial to your success.</div>
+                    </div>
+                </div>
+
+                <!-- CHAMPIONS PAGE -->
+                <div id="champions" class="page-content">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <div class="section-icon">⚔️</div>
+                            <div class="section-title">Most Played Champions</div>
+                        </div>
+                        <div class="champion-grid">
+                            <div class="champion-item">
+                                <div class="champion-avatar">🗡️</div>
+                                <div class="champion-name">Jinx</div>
+                                <div class="champion-stats">142 games • 68% WR</div>
+                                <div class="champion-insight">Your signature carry</div>
+                            </div>
+                            <div class="champion-item">
+                                <div class="champion-avatar">🏹</div>
+                                <div class="champion-name">Caitlyn</div>
+                                <div class="champion-stats">98 games • 64% WR</div>
+                                <div class="champion-insight">Lane dominance expert</div>
+                            </div>
+                            <div class="champion-item">
+                                <div class="champion-avatar">⚡</div>
+                                <div class="champion-name">Ezreal</div>
+                                <div class="champion-stats">87 games • 61% WR</div>
+                                <div class="champion-insight">Safe scaling pick</div>
+                            </div>
+                            <div class="champion-item">
+                                <div class="champion-avatar">🔥</div>
+                                <div class="champion-name">Lucian</div>
+                                <div class="champion-stats">76 games • 59% WR</div>
+                                <div class="champion-insight">Early game crusher</div>
+                            </div>
+                            <div class="champion-item">
+                                <div class="champion-avatar">💎</div>
+                                <div class="champion-name">Kai'Sa</div>
+                                <div class="champion-stats">65 games • 62% WR</div>
+                                <div class="champion-insight">Hybrid damage threat</div>
+                            </div>
+                            <div class="champion-item">
+                                <div class="champion-avatar">🌟</div>
+                                <div class="champion-name">Xayah</div>
+                                <div class="champion-stats">54 games • 67% WR</div>
+                                <div class="champion-insight">Team fight master</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <div class="section-header">
+                            <div class="section-icon">💡</div>
+                            <div class="section-title">Champion Insights</div>
+                        </div>
+                        <ul class="insight-list">
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>Hyper-carry ADC champions with late-game scaling are your specialty</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>Consistent 60%+ win rate across your main champion pool</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>Strong understanding of positioning and spacing on ranged carries</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>Comfortable adapting champion picks to team composition needs</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="quote-block">
+                        <div class="quote-text">Each champion you've mastered reflects hours of dedicated practice and strategic thinking. Your consistency on Jinx and Caitlyn shows true expertise in ADC fundamentals.</div>
+                    </div>
+                </div>
+
+                <!-- TEAM IMPACT PAGE -->
+                <div id="team-impact" class="page-content">
+                    <div class="dashboard-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">👥</div>
+                            </div>
+                            <div class="stat-value">425</div>
+                            <div class="stat-label">Team Victories</div>
+                            <div class="stat-description">Consistent team player</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🤝</div>
+                            </div>
+                            <div class="stat-value">78%</div>
+                            <div class="stat-label">Team Fight Participation</div>
+                            <div class="stat-description">Always there when needed</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🎯</div>
+                            </div>
+                            <div class="stat-value">4.2</div>
+                            <div class="stat-label">Objectives per Game</div>
+                            <div class="stat-description">Objective-focused mindset</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">⚡</div>
+                            </div>
+                            <div class="stat-value">89%</div>
+                            <div class="stat-label">Dodge Success Rate</div>
+                            <div class="stat-description">Exceptional positioning</div>
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <div class="section-header">
+                            <div class="section-icon">💡</div>
+                            <div class="section-title">Leadership & Communication</div>
+                        </div>
+                        <ul class="insight-list">
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>High team fight participation shows strong map awareness</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>Objective control demonstrates strategic thinking beyond laning</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>Exceptional positioning prevents unnecessary deaths</div>
+                            </li>
+                            <li class="insight-item">
+                                <div class="insight-icon">◆</div>
+                                <div>Team-oriented playstyle elevates overall squad performance</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="quote-block">
+                        <div class="quote-text">Your impact extends far beyond individual performance. With 78% team fight participation and strong objective control, you consistently show up when your team needs you most.</div>
+                    </div>
+                </div>
+
+                <!-- GROWTH PAGE -->
+                <div id="growth" class="page-content">
+                    <div class="dashboard-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">⚔️</div>
+                                <div class="stat-trend trend-up">+156%</div>
+                            </div>
+                            <div class="stat-value">+156%</div>
+                            <div class="stat-label">Mechanical Improvement</div>
+                            <div class="stat-description">Dramatic skill advancement</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🧠</div>
+                                <div class="stat-trend trend-up">+89%</div>
+                            </div>
+                            <div class="stat-value">+89%</div>
+                            <div class="stat-label">Game Knowledge</div>
+                            <div class="stat-description">Strategic depth gained</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">💪</div>
+                                <div class="stat-trend trend-up">+67%</div>
+                            </div>
+                            <div class="stat-value">+67%</div>
+                            <div class="stat-label">Mental Resilience</div>
+                            <div class="stat-description">Tilt-proof mindset</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🎯</div>
+                                <div class="stat-trend trend-up">+234%</div>
+                            </div>
+                            <div class="stat-value">+234%</div>
+                            <div class="stat-label">Decision Making</div>
+                            <div class="stat-description">Clutch factor developed</div>
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <div class="section-header">
+                            <div class="section-icon">📈</div>
+                            <div class="section-title">Growth Milestones</div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Mechanics</div>
+                                <div class="progress-percentage">85% Complete</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 85%"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Game Knowledge</div>
+                                <div class="progress-percentage">78% Complete</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 78%"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Mental Game</div>
+                                <div class="progress-percentage">82% Complete</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 82%"></div>
+                            </div>
+                        </div>
+
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <div class="progress-label">Team Play</div>
+                                <div class="progress-percentage">90% Complete</div>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 90%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quote-block">
+                        <div class="quote-text">Every strike hardened your resolve; every loss melted weakness into wisdom. In the forge of defeat, you were remade stronger.</div>
+                    </div>
+                </div>
+
+                <!-- ACHIEVEMENTS PAGE -->
+                <div id="achievements" class="page-content">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <div class="section-icon">🏆</div>
+                            <div class="section-title">Major Achievements</div>
+                        </div>
+                        <div class="achievement-grid">
+                            <div class="achievement-badge">
+                                <div class="badge-icon">👑</div>
+                                <div class="badge-title">Plat Achiever</div>
+                                <div class="badge-description">Reached Platinum Rank</div>
+                            </div>
+                            <div class="achievement-badge">
+                                <div class="badge-icon">🎯</div>
+                                <div class="badge-title">Sharp Shooter</div>
+                                <div class="badge-description">68% win rate on Jinx</div>
+                            </div>
+                            <div class="achievement-badge">
+                                <div class="badge-icon">⚡</div>
+                                <div class="badge-title">Clutch Master</div>
+                                <div class="badge-description">234% decision improvement</div>
+                            </div>
+                            <div class="achievement-badge">
+                                <div class="badge-icon">🏅</div>
+                                <div class="badge-title">Team Player</div>
+                                <div class="badge-description">78% team fight participation</div>
+                            </div>
+                            <div class="achievement-badge">
+                                <div class="badge-icon">📈</div>
+                                <div class="badge-title">Consistent</div>
+                                <div class="badge-description">53.2% win rate over 847 games</div>
+                            </div>
+                            <div class="achievement-badge">
+                                <div class="badge-icon">🎮</div>
+                                <div class="badge-title">Versatile</div>
+                                <div class="badge-description">24 champions mastered</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quote-block">
+                        <div class="quote-text">Achievements are not about the destination, but the journey of becoming. Each milestone represents countless hours of dedication and growth.</div>
+                    </div>
+                </div>
+
+                <!-- FUTURE GOALS PAGE -->
+                <div id="future-goals" class="page-content">
+                    <div class="dashboard-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🎯</div>
+                            </div>
+                            <div class="stat-value">Diamond</div>
+                            <div class="stat-label">Next Rank Goal</div>
+                            <div class="stat-description">6-12 month timeline</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">⚔️</div>
+                            </div>
+                            <div class="stat-value">12</div>
+                            <div class="stat-label">New Champions</div>
+                            <div class="stat-description">Expand champion pool</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">📈</div>
+                            </div>
+                            <div class="stat-value">60%</div>
+                            <div class="stat-label">Target Win Rate</div>
+                            <div class="stat-description">Consistency focus</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">🎮</div>
+                            </div>
+                            <div class="stat-value">1,500+</div>
+                            <div class="stat-label">Games Target</div>
+                            <div class="stat-description">Volume for improvement</div>
+                        </div>
+                    </div>
+
+                    <div class="goals-container">
+                        <div class="goal-card">
+                            <div class="goal-header">
+                                <span class="goal-title">Master Advanced Macro</span>
+                                <span class="goal-target">Q1</span>
+                            </div>
+                            <div class="goal-insight">Focus on wave management, objective timings, and map pressure</div>
+                        </div>
+
+                        <div class="goal-card">
+                            <div class="goal-header">
+                                <span class="goal-title">Expand Champion Pool</span>
+                                <span class="goal-target">Q2</span>
+                            </div>
+                            <div class="goal-insight">Master 3 champions in each secondary role</div>
+                        </div>
+
+                        <div class="goal-card">
+                            <div class="goal-header">
+                                <span class="goal-title">Diamond Promotion</span>
+                                <span class="goal-target">Q3</span>
+                            </div>
+                            <div class="goal-insight">Achieve consistent 60% win rate in Platinum</div>
+                        </div>
+
+                        <div class="goal-card">
+                            <div class="goal-header">
+                                <span class="goal-title">Join Competitive Team</span>
+                                <span class="goal-target">Q4</span>
+                            </div>
+                            <div class="goal-insight">Participate in organized 5v5 team competitions</div>
+                        </div>
+                    </div>
+
+                    <div class="quote-block">
+                        <div class="quote-text">The horizon awaits. Each goal achieved opens new opportunities for development, creating a virtuous cycle of improvement and achievement.</div>
+                    </quote-block>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('active');
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+        });
+
+        // Page Navigation
+        const pageData = {
+            'overview': {
+                title: 'Dashboard Overview',
+                subtitle: 'Your journey through the Rift'
+            },
+            'performance': {
+                title: 'Performance Analytics',
+                subtitle: 'Metrics, trends, and improvement insights'
+            },
+            'champions': {
+                title: 'Champion Mastery',
+                subtitle: 'Your arsenal of legends'
+            },
+            'team-impact': {
+                title: 'Team Impact',
+                subtitle: 'Leadership, communication, and victory'
+            },
+            'growth': {
+                title: 'Personal Growth',
+                subtitle: 'The evolution of a summoner'
+            },
+            'achievements': {
+                title: 'Achievements & Milestones',
+                subtitle: 'Trophies of dedication'
+            },
+            'future-goals': {
+                title: 'Future Goals',
+                subtitle: 'Charting the path ahead'
+            }
+        };
+
+        function showPage(pageId) {
+            // Hide all pages
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Remove active class from all nav items
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Show selected page
+            const selectedPage = document.getElementById(pageId);
+            if (selectedPage) {
+                selectedPage.classList.add('active');
+            }
+
+            // Add active class to clicked nav item
+            const activeNavItem = document.querySelector(`[data-page="${pageId}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active');
+            }
+
+            // Update page title and subtitle
+            if (pageData[pageId]) {
+                document.getElementById('pageTitle').textContent = pageData[pageId].title;
+                document.getElementById('pageSubtitle').textContent = pageData[pageId].subtitle;
+            }
+
+            // Close mobile menu
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            }
+        }
+
+        // Add click handlers to nav items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageId = e.currentTarget.dataset.page;
+                showPage(pageId);
+            });
+        });
+
+        // Initialize animations on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate stat cards on load
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>
