@@ -92,11 +92,11 @@ Resources:
         - profile
       AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs:
-        - !Sub 'http://${WebAppBucket}.s3-website-${AWS::Region}.amazonaws.com'
         - http://localhost:3000
+        - http://localhost:8080
       LogoutURLs:
-        - !Sub 'http://${WebAppBucket}.s3-website-${AWS::Region}.amazonaws.com'
         - http://localhost:3000
+        - http://localhost:8080
       SupportedIdentityProviders:
         - COGNITO
 
