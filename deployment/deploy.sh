@@ -49,7 +49,11 @@ fi
 # Step 2: Package Lambda functions
 echo -e "${YELLOW}Step 2: Packaging Lambda functions...${NC}"
 
-cd lambda_functions
+# Get the project root directory (parent of deployment directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+cd "${PROJECT_ROOT}/lambda_functions"
 
 # Package each function
 for func in data_collection feature_engineering model_inference bedrock_generation report_compilation resource_manager; do
@@ -75,7 +79,7 @@ for func in data_collection feature_engineering model_inference bedrock_generati
     rm -rf /tmp/${func}_package
 done
 
-cd ..
+cd "${PROJECT_ROOT}"
 
 # Step 3: Create ML dependencies layer
 echo -e "${YELLOW}Step 3: Creating ML dependencies layer...${NC}"
@@ -84,7 +88,7 @@ if [ ! -f "/tmp/ml-dependencies.zip" ]; then
     echo "Building ML dependencies layer..."
     mkdir -p /tmp/python
 
-    pip install -r deployment/requirements.txt -t /tmp/python/ --quiet
+    pip install -r "${PROJECT_ROOT}/deployment/requirements.txt" -t /tmp/python/ --quiet
 
     cd /tmp
     zip -r ml-dependencies.zip python > /dev/null 2>&1
@@ -111,7 +115,7 @@ fi
 
 aws cloudformation ${ACTION} \
     --stack-name "${STACK_NAME}" \
-    --template-body file://infrastructure.yaml \
+    --template-body file://"${PROJECT_ROOT}/infrastructure.yaml" \
     --parameters \
         ParameterKey=Environment,ParameterValue="${ENVIRONMENT}" \
         ParameterKey=RiotAPIKey,ParameterValue="${RIOT_API_KEY}" \
@@ -159,8 +163,8 @@ done
 # Step 6: Seed champion database
 echo -e "${YELLOW}Step 6: Seeding champion database...${NC}"
 
-if [ -f "database_seeds/seed_champions.py" ]; then
-    python database_seeds/seed_champions.py --environment "${ENVIRONMENT}" --region "${AWS_REGION}"
+if [ -f "${PROJECT_ROOT}/database_seeds/seed_champions.py" ]; then
+    python "${PROJECT_ROOT}/database_seeds/seed_champions.py" --environment "${ENVIRONMENT}" --region "${AWS_REGION}"
     echo -e "${GREEN}✓ Champion database seeded${NC}"
 else
     echo -e "${YELLOW}Champion seed script not found, skipping...${NC}"
