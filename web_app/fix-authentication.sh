@@ -133,10 +133,11 @@ echo "Step 3: Updating Cognito callback URLs..."
 
 # Get current callback URLs
 CURRENT_CALLBACKS=$(aws cognito-idp describe-user-pool-client \
-    --user-pool-id $USER_POOL_ID \
-    --client-id $CLIENT_ID \
+    --user-pool-id "$USER_POOL_ID" \
+    --client-id "$CLIENT_ID" \
+    --region "$AWS_REGION" \
     --query 'UserPoolClient.CallbackURLs' \
-    --output json)
+    --output json 2>/dev/null || echo "[]")
 
 # Check if CloudFront URL is already added
 if echo "$CURRENT_CALLBACKS" | grep -q "$CLOUDFRONT_URL"; then
@@ -146,8 +147,9 @@ else
 
     # Add CloudFront URLs (both with and without /pages/auth.html)
     aws cognito-idp update-user-pool-client \
-        --user-pool-id $USER_POOL_ID \
-        --client-id $CLIENT_ID \
+        --user-pool-id "$USER_POOL_ID" \
+        --client-id "$CLIENT_ID" \
+        --region "$AWS_REGION" \
         --callback-urls \
             "http://localhost:3000" \
             "http://localhost:8080" \
@@ -159,7 +161,8 @@ else
         --allowed-o-auth-flows "code" \
         --allowed-o-auth-scopes "email" "openid" "profile" \
         --allowed-o-auth-flows-user-pool-client \
-        --supported-identity-providers "COGNITO"
+        --supported-identity-providers "COGNITO" \
+        >/dev/null 2>&1
 
     echo "  ✓ Callback URLs updated successfully"
 fi
