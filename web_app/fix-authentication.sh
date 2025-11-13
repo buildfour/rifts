@@ -83,15 +83,49 @@ if [ -n "$STACK_NAME" ] && [ -z "$USER_POOL_ID" ]; then
     USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' --output text --region $AWS_REGION)
     CLIENT_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`UserPoolClientId`].OutputValue' --output text --region $AWS_REGION)
     IDENTITY_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`IdentityPoolId`].OutputValue' --output text --region $AWS_REGION)
-    CLOUDFRONT_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontURL`].OutputValue' --output text --region $AWS_REGION)
+    CLOUDFRONT_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontURL`].OutputValue' --output text --region $AWS_REGION 2>/dev/null)
     WEBAPP_BUCKET=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`WebAppBucket`].OutputValue' --output text --region $AWS_REGION)
 
     echo "  ✓ User Pool ID: $USER_POOL_ID"
     echo "  ✓ Client ID: $CLIENT_ID"
-    echo "  ✓ CloudFront URL: $CLOUDFRONT_URL"
     echo "  ✓ Web App Bucket: $WEBAPP_BUCKET"
     echo "  ✓ Region: $AWS_REGION"
+fi
+
+# If CloudFront URL not in stack outputs, try to find it from CloudFront distributions
+if [ -z "$CLOUDFRONT_URL" ] || [ "$CLOUDFRONT_URL" == "None" ]; then
     echo ""
+    echo "CloudFront URL not found in stack outputs. Searching CloudFront distributions..."
+
+    # Get CloudFront distribution for this bucket
+    DISTRIBUTION_DOMAIN=$(aws cloudfront list-distributions \
+        --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$WEBAPP_BUCKET')].DomainName" \
+        --output text \
+        --region $AWS_REGION 2>/dev/null | head -1)
+
+    if [ -n "$DISTRIBUTION_DOMAIN" ]; then
+        CLOUDFRONT_URL="https://${DISTRIBUTION_DOMAIN}"
+        echo "  ✓ Found CloudFront URL: $CLOUDFRONT_URL"
+    else
+        echo "  ✗ Could not find CloudFront distribution"
+        echo ""
+        read -p "Enter your CloudFront URL (https://...cloudfront.net): " CLOUDFRONT_URL
+    fi
+fi
+
+echo "  ✓ CloudFront URL: $CLOUDFRONT_URL"
+echo ""
+
+# Validate all required variables are set
+if [ -z "$USER_POOL_ID" ] || [ -z "$CLIENT_ID" ] || [ -z "$WEBAPP_BUCKET" ] || [ -z "$CLOUDFRONT_URL" ]; then
+    echo "Error: Missing required configuration"
+    echo "  USER_POOL_ID: ${USER_POOL_ID:-NOT SET}"
+    echo "  CLIENT_ID: ${CLIENT_ID:-NOT SET}"
+    echo "  WEBAPP_BUCKET: ${WEBAPP_BUCKET:-NOT SET}"
+    echo "  CLOUDFRONT_URL: ${CLOUDFRONT_URL:-NOT SET}"
+    echo ""
+    echo "Please run in manual mode: ./fix-authentication.sh --manual"
+    exit 1
 fi
 
 # Step 3: Update Cognito User Pool Client callback URLs
