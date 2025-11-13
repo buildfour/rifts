@@ -6,6 +6,11 @@
 # 1. Adding CloudFront URL to Cognito callback URLs
 # 2. Uploading the fixed auth.js that uses Cognito OAuth
 # 3. Updating aws-config.js with correct environment value
+#
+# Usage:
+#   ./fix-authentication.sh                        # Auto-detect resources
+#   ./fix-authentication.sh STACK_NAME             # Use specific stack
+#   ./fix-authentication.sh --manual               # Enter values manually
 ##############################################################################
 
 set -e  # Exit on error
@@ -15,16 +20,64 @@ echo "Fixing Summoner's Chronicle Authentication"
 echo "========================================"
 echo ""
 
-# Step 1: Get CloudFormation stack outputs
-echo "Step 1: Getting CloudFormation stack information..."
-STACK_NAME="summoners-chronicle-webapp"
+AWS_REGION=$(aws configure get region || echo "us-east-1")
 
-# Check if stack exists
-if ! aws cloudformation describe-stacks --stack-name $STACK_NAME &>/dev/null; then
-    echo "Error: CloudFormation stack '$STACK_NAME' not found!"
-    echo "Please ensure you've deployed the web app first."
-    exit 1
+# Step 1: Determine how to get configuration
+if [ "$1" == "--manual" ]; then
+    echo "Manual configuration mode"
+    echo ""
+    read -p "Enter User Pool ID: " USER_POOL_ID
+    read -p "Enter Client ID: " CLIENT_ID
+    read -p "Enter Identity Pool ID: " IDENTITY_POOL_ID
+    read -p "Enter S3 Bucket Name: " WEBAPP_BUCKET
+    read -p "Enter CloudFront URL (https://...): " CLOUDFRONT_URL
+    echo ""
+elif [ -n "$1" ]; then
+    STACK_NAME="$1"
+    echo "Using provided stack name: $STACK_NAME"
+else
+    # Auto-detect stack
+    echo "Step 1: Auto-detecting CloudFormation stack..."
+
+    # Try common stack names
+    for name in "summoners-chronicle-webapp" "summoners-chronicle" "chronicle-webapp" "webapp"; do
+        if aws cloudformation describe-stacks --stack-name "$name" --region $AWS_REGION &>/dev/null; then
+            STACK_NAME="$name"
+            echo "  ✓ Found stack: $STACK_NAME"
+            break
+        fi
+    done
+
+    # If still not found, search for any stack with summoner/chronicle in name
+    if [ -z "$STACK_NAME" ]; then
+        MATCHING_STACK=$(aws cloudformation list-stacks \
+            --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+            --query 'StackSummaries[?contains(StackName, `summoner`) || contains(StackName, `chronicle`)].StackName' \
+            --output text \
+            --region $AWS_REGION | head -1)
+
+        if [ -n "$MATCHING_STACK" ]; then
+            STACK_NAME="$MATCHING_STACK"
+            echo "  ✓ Found matching stack: $STACK_NAME"
+        fi
+    fi
+
+    if [ -z "$STACK_NAME" ]; then
+        echo ""
+        echo "Error: Could not auto-detect CloudFormation stack"
+        echo ""
+        echo "Options:"
+        echo "  1. Provide stack name: ./fix-authentication.sh YOUR_STACK_NAME"
+        echo "  2. Manual mode: ./fix-authentication.sh --manual"
+        echo "  3. Run ./find-stacks.sh to see available stacks"
+        echo ""
+        exit 1
+    fi
 fi
+
+# Step 2: Get outputs from stack (if we have one)
+if [ -n "$STACK_NAME" ] && [ -z "$USER_POOL_ID" ]; then
+    echo "Step 2: Getting configuration from CloudFormation stack..."
 
 # Get outputs
 USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' --output text)

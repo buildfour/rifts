@@ -3,6 +3,11 @@
 ##############################################################################
 # Create CloudFront Distribution for Summoner's Chronicle
 # This script properly configures and creates a CloudFront distribution
+#
+# Usage:
+#   ./create-cloudfront.sh                    # Auto-detect stack
+#   ./create-cloudfront.sh STACK_NAME         # Use specific stack name
+#   ./create-cloudfront.sh --bucket BUCKET    # Use specific bucket name
 ##############################################################################
 
 set -e  # Exit on error
@@ -12,21 +17,83 @@ echo "Creating CloudFront Distribution"
 echo "========================================"
 echo ""
 
-# Get configuration
-STACK_NAME="summoners-chronicle-webapp"
 AWS_REGION=$(aws configure get region || echo "us-east-1")
 
-# Step 1: Get the S3 bucket name
-echo "Step 1: Getting S3 bucket information..."
-WEBAPP_BUCKET=$(aws cloudformation describe-stacks \
-    --stack-name $STACK_NAME \
-    --query 'Stacks[0].Outputs[?OutputKey==`WebAppBucket`].OutputValue' \
-    --output text \
-    --region $AWS_REGION)
+# Parse arguments
+if [ "$1" == "--bucket" ] && [ -n "$2" ]; then
+    # User provided bucket name directly
+    WEBAPP_BUCKET="$2"
+    echo "Using provided bucket: $WEBAPP_BUCKET"
+elif [ -n "$1" ]; then
+    # User provided stack name
+    STACK_NAME="$1"
+    echo "Using provided stack name: $STACK_NAME"
+else
+    # Try to auto-detect stack
+    echo "Step 1: Auto-detecting CloudFormation stack..."
 
+    # Try common stack names
+    for name in "summoners-chronicle-webapp" "summoners-chronicle" "chronicle-webapp" "webapp"; do
+        if aws cloudformation describe-stacks --stack-name "$name" --region $AWS_REGION &>/dev/null; then
+            STACK_NAME="$name"
+            echo "  ✓ Found stack: $STACK_NAME"
+            break
+        fi
+    done
+
+    # If still not found, search for any stack with summoner/chronicle in name
+    if [ -z "$STACK_NAME" ]; then
+        MATCHING_STACK=$(aws cloudformation list-stacks \
+            --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+            --query 'StackSummaries[?contains(StackName, `summoner`) || contains(StackName, `chronicle`)].StackName' \
+            --output text \
+            --region $AWS_REGION | head -1)
+
+        if [ -n "$MATCHING_STACK" ]; then
+            STACK_NAME="$MATCHING_STACK"
+            echo "  ✓ Found matching stack: $STACK_NAME"
+        fi
+    fi
+
+    if [ -z "$STACK_NAME" ]; then
+        echo ""
+        echo "Error: Could not auto-detect CloudFormation stack"
+        echo ""
+        echo "Options:"
+        echo "  1. Provide stack name: ./create-cloudfront.sh YOUR_STACK_NAME"
+        echo "  2. Provide bucket name: ./create-cloudfront.sh --bucket YOUR_BUCKET_NAME"
+        echo "  3. Run ./find-stacks.sh to see available stacks"
+        echo ""
+        exit 1
+    fi
+fi
+
+# Step 2: Get the S3 bucket name (if we have a stack name)
 if [ -z "$WEBAPP_BUCKET" ]; then
-    echo "Error: Could not find WebAppBucket output from CloudFormation stack"
-    exit 1
+    echo "Step 2: Getting S3 bucket from CloudFormation stack..."
+    WEBAPP_BUCKET=$(aws cloudformation describe-stacks \
+        --stack-name "$STACK_NAME" \
+        --query 'Stacks[0].Outputs[?OutputKey==`WebAppBucket`].OutputValue' \
+        --output text \
+        --region $AWS_REGION 2>/dev/null)
+
+    if [ -z "$WEBAPP_BUCKET" ]; then
+        echo "  ✗ Could not find WebAppBucket output from stack"
+        echo ""
+        echo "Attempting to find S3 bucket manually..."
+
+        # Try to find bucket by naming convention
+        WEBAPP_BUCKET=$(aws s3 ls | grep -i "summoner\|chronicle" | awk '{print $3}' | head -1)
+
+        if [ -z "$WEBAPP_BUCKET" ]; then
+            echo "Error: Could not find S3 bucket"
+            echo ""
+            echo "Please run with bucket name: ./create-cloudfront.sh --bucket YOUR_BUCKET_NAME"
+            exit 1
+        fi
+
+        echo "  ✓ Found bucket: $WEBAPP_BUCKET"
+    fi
 fi
 
 echo "  ✓ S3 Bucket: $WEBAPP_BUCKET"
