@@ -244,18 +244,28 @@ echo ""
 echo "Step 6: Invalidating CloudFront cache..."
 
 # Get CloudFront distribution ID
-DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$WEBAPP_BUCKET')].Id" --output text)
+DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+    --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$WEBAPP_BUCKET')].Id" \
+    --output text 2>/dev/null | tr -d '\r\n' | awk '{print $1}')
 
-if [ -n "$DISTRIBUTION_ID" ]; then
+if [ -n "$DISTRIBUTION_ID" ] && [ "$DISTRIBUTION_ID" != "None" ]; then
+    echo "  Distribution ID: $DISTRIBUTION_ID"
+
     aws cloudfront create-invalidation \
-        --distribution-id $DISTRIBUTION_ID \
-        --paths "/config/aws-config.js" "/assets/js/auth.js" "/pages/auth.html"
+        --distribution-id "$DISTRIBUTION_ID" \
+        --paths "/config/aws-config.js" "/assets/js/auth.js" "/pages/auth.html" \
+        >/dev/null 2>&1
 
-    echo "  ✓ CloudFront cache invalidated"
-    echo "  Note: Cache invalidation may take 5-15 minutes to complete"
+    if [ $? -eq 0 ]; then
+        echo "  ✓ CloudFront cache invalidated"
+        echo "  Note: Cache invalidation may take 5-15 minutes to complete"
+    else
+        echo "  ⚠ Cache invalidation failed, but files are uploaded"
+        echo "  You may need to wait 15-30 minutes for cache to expire naturally"
+    fi
 else
     echo "  ⚠ Could not find CloudFront distribution ID"
-    echo "  You may need to wait for CDN cache to expire or clear it manually"
+    echo "  Files uploaded successfully - cache will expire naturally"
 fi
 echo ""
 
