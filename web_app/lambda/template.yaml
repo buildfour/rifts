@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Summoner's Chronicle Backend API
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+  ProjectName:
+    Type: String
+    Default: summoners-chronicle
+  RiotApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Riot API Key (optional for demo)
+
+Resources:
+  # DynamoDB Table
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-users-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub '${ProjectName}-api-${Environment}'
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  # Lambda Functions
+  UserProfileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-user-profile-${Environment}'
+      CodeUri: lambda/
+      Handler: user-profile.handler
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        GetProfile:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /user/profile
+            Method: GET
+
+  GetReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-get-report-${Environment}'
+      CodeUri: lambda/
+      Handler: get-report.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        GetReport:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /report/{puuid}
+            Method: GET
+
+  LinkSummonerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-link-summoner-${Environment}'
+      CodeUri: lambda/
+      Handler: link-summoner.handler
+      Runtime: nodejs20.x
+      Timeout: 10
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+          RIOT_API_KEY: !Ref RiotApiKey
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        LinkSummoner:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /summoner/link
+            Method: POST
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway Endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  UsersTableName:
+    Description: DynamoDB Users Table Name
+    Value: !Ref UsersTable
