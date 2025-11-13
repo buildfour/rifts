@@ -1,0 +1,17 @@
+{
+  "name": "summoners-chronicle-api",
+  "version": "1.0.0",
+  "description": "Lambda functions for Summoner's Chronicle web app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["lambda", "aws", "riot-api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.450.0",
+    "@aws-sdk/lib-dynamodb": "^3.450.0",
+    "@aws-sdk/client-lambda": "^3.450.0"
+  }
+}
