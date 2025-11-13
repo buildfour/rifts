@@ -79,25 +79,23 @@ fi
 if [ -n "$STACK_NAME" ] && [ -z "$USER_POOL_ID" ]; then
     echo "Step 2: Getting configuration from CloudFormation stack..."
 
-# Get outputs
-USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' --output text)
-CLIENT_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`UserPoolClientId`].OutputValue' --output text)
-IDENTITY_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`IdentityPoolId`].OutputValue' --output text)
-CLOUDFRONT_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontURL`].OutputValue' --output text)
-WEBAPP_BUCKET=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`WebAppBucket`].OutputValue' --output text)
+    # Get outputs
+    USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' --output text --region $AWS_REGION)
+    CLIENT_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`UserPoolClientId`].OutputValue' --output text --region $AWS_REGION)
+    IDENTITY_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`IdentityPoolId`].OutputValue' --output text --region $AWS_REGION)
+    CLOUDFRONT_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontURL`].OutputValue' --output text --region $AWS_REGION)
+    WEBAPP_BUCKET=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`WebAppBucket`].OutputValue' --output text --region $AWS_REGION)
 
-# Get region
-REGION=$(aws configure get region || echo "us-east-1")
+    echo "  ✓ User Pool ID: $USER_POOL_ID"
+    echo "  ✓ Client ID: $CLIENT_ID"
+    echo "  ✓ CloudFront URL: $CLOUDFRONT_URL"
+    echo "  ✓ Web App Bucket: $WEBAPP_BUCKET"
+    echo "  ✓ Region: $AWS_REGION"
+    echo ""
+fi
 
-echo "  ✓ User Pool ID: $USER_POOL_ID"
-echo "  ✓ Client ID: $CLIENT_ID"
-echo "  ✓ CloudFront URL: $CLOUDFRONT_URL"
-echo "  ✓ Web App Bucket: $WEBAPP_BUCKET"
-echo "  ✓ Region: $REGION"
-echo ""
-
-# Step 2: Update Cognito User Pool Client callback URLs
-echo "Step 2: Updating Cognito callback URLs..."
+# Step 3: Update Cognito User Pool Client callback URLs
+echo "Step 3: Updating Cognito callback URLs..."
 
 # Get current callback URLs
 CURRENT_CALLBACKS=$(aws cognito-idp describe-user-pool-client \
@@ -133,8 +131,8 @@ else
 fi
 echo ""
 
-# Step 3: Update aws-config.js
-echo "Step 3: Updating aws-config.js..."
+# Step 4: Update aws-config.js
+echo "Step 4: Updating aws-config.js..."
 
 cat > /tmp/aws-config.js << EOF
 /**
@@ -184,8 +182,8 @@ aws s3 cp /tmp/aws-config.js s3://$WEBAPP_BUCKET/config/aws-config.js \
 echo "  ✓ aws-config.js updated and uploaded"
 echo ""
 
-# Step 4: Upload fixed auth.js
-echo "Step 4: Uploading fixed auth.js..."
+# Step 5: Upload fixed auth.js
+echo "Step 5: Uploading fixed auth.js..."
 
 # Check if we're in the rifts directory
 if [ -f "assets/js/auth.js" ]; then
@@ -205,8 +203,8 @@ aws s3 cp $AUTH_JS_PATH s3://$WEBAPP_BUCKET/assets/js/auth.js \
 echo "  ✓ auth.js uploaded successfully"
 echo ""
 
-# Step 5: Invalidate CloudFront cache
-echo "Step 5: Invalidating CloudFront cache..."
+# Step 6: Invalidate CloudFront cache
+echo "Step 6: Invalidating CloudFront cache..."
 
 # Get CloudFront distribution ID
 DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$WEBAPP_BUCKET')].Id" --output text)
