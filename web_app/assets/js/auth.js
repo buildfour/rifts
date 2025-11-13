@@ -1,10 +1,29 @@
 /**
  * Summoner's Chronicle - Authentication JavaScript
- * Handles AWS Cognito authentication, magic links, and access keys
+ * Uses Cognito Hosted UI for OAuth authentication
  */
 
 (function() {
     'use strict';
+
+    // Cognito configuration will be injected from aws-config.js
+    let cognitoConfig = null;
+    let cognitoDomain = null;
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof AWS_CONFIG === 'undefined') {
+            showError('Configuration not loaded. Please refresh the page.');
+            return;
+        }
+
+        // Build Cognito domain URL
+        const accountId = AWS_CONFIG.cognito.userPoolId.split('_')[0];
+        cognitoDomain = `https://summoners-chronicle-${AWS_CONFIG.app.environment}-${accountId}.auth.${AWS_CONFIG.region}.amazoncognito.com`;
+
+        // Check if returning from OAuth callback
+        handleOAuthCallback();
+    });
 
     // Tab switching
     const authTabs = document.querySelectorAll('.auth-tab');
@@ -27,45 +46,131 @@
         });
     });
 
-    // Email authentication form
+    // Email authentication - redirect to Cognito Hosted UI
     const emailAuthForm = document.getElementById('emailAuthForm');
     if (emailAuthForm) {
         emailAuthForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const email = document.getElementById('email').value;
-            const authLoading = document.getElementById('authLoading');
-            const authError = document.getElementById('authError');
-            const emailForm = document.getElementById('email-form');
-            const emailSuccess = document.getElementById('emailSuccess');
 
-            try {
-                // Show loading state
-                emailForm.style.display = 'none';
-                authLoading.style.display = 'block';
-                authError.style.display = 'none';
+            // Store email for later use
+            sessionStorage.setItem('pendingEmail', email);
 
-                // Call AWS Cognito to send magic link
-                const response = await sendMagicLink(email);
-
-                // Show success message
-                authLoading.style.display = 'none';
-                emailSuccess.style.display = 'block';
-                document.getElementById('sentEmail').textContent = email;
-
-            } catch (error) {
-                console.error('Authentication error:', error);
-
-                // Show error message
-                authLoading.style.display = 'none';
-                authError.style.display = 'block';
-                document.getElementById('errorMessage').textContent =
-                    error.message || 'Failed to send magic link. Please try again.';
-            }
+            // Redirect to Cognito Hosted UI
+            redirectToCognitoHostedUI(email);
         });
     }
 
-    // Access key upload form
+    function redirectToCognitoHostedUI(email = null) {
+        if (!cognitoDomain) {
+            showError('Authentication service not configured');
+            return;
+        }
+
+        // Get current page URL for redirect
+        const redirectUri = window.location.origin + window.location.pathname;
+
+        // Build OAuth URL
+        const authUrl = new URL(`${cognitoDomain}/oauth2/authorize`);
+        authUrl.searchParams.append('client_id', AWS_CONFIG.cognito.clientId);
+        authUrl.searchParams.append('response_type', 'code');
+        authUrl.searchParams.append('scope', 'email openid profile');
+        authUrl.searchParams.append('redirect_uri', redirectUri);
+
+        if (email) {
+            authUrl.searchParams.append('login_hint', email);
+        }
+
+        // Redirect to Cognito
+        window.location.href = authUrl.toString();
+    }
+
+    // Handle OAuth callback
+    async function handleOAuthCallback() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+
+        if (error) {
+            showError(`Authentication failed: ${error}`);
+            return;
+        }
+
+        if (code) {
+            // Show loading
+            const authLoading = document.getElementById('authLoading');
+            if (authLoading) {
+                authLoading.style.display = 'block';
+            }
+
+            try {
+                // Exchange code for tokens
+                const tokens = await exchangeCodeForTokens(code);
+
+                // Parse ID token to get user info
+                const userInfo = parseJWT(tokens.id_token);
+
+                // Store authentication info
+                localStorage.setItem('authToken', tokens.access_token);
+                localStorage.setItem('idToken', tokens.id_token);
+                localStorage.setItem('refreshToken', tokens.refresh_token);
+                localStorage.setItem('userId', userInfo.sub);
+                localStorage.setItem('userEmail', userInfo.email);
+
+                // Check if user needs to link summoner
+                const summonerLinked = localStorage.getItem('summonerPuuid');
+
+                if (summonerLinked) {
+                    // Redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
+                    // Show setup form
+                    document.querySelector('.auth-card').style.display = 'none';
+                    document.getElementById('setupCard').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('OAuth callback error:', error);
+                showError('Authentication failed. Please try again.');
+            }
+        }
+    }
+
+    async function exchangeCodeForTokens(code) {
+        const redirectUri = window.location.origin + window.location.pathname;
+
+        const response = await fetch(`${cognitoDomain}/oauth2/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                grant_type: 'authorization_code',
+                client_id: AWS_CONFIG.cognito.clientId,
+                code: code,
+                redirect_uri: redirectUri
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to exchange authorization code');
+        }
+
+        return await response.json();
+    }
+
+    function parseJWT(token) {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        return JSON.parse(jsonPayload);
+    }
+
+    // Access key authentication - simplified version
     const accessKeyForm = document.getElementById('accessKeyForm');
     if (accessKeyForm) {
         const fileInput = document.getElementById('accessKeyFile');
@@ -128,14 +233,33 @@
                 authLoading.style.display = 'block';
                 authError.style.display = 'none';
 
-                // Read and validate access key
+                // Read access key file
                 const accessKey = await readAccessKeyFile(file);
 
-                // Authenticate with access key
-                await authenticateWithAccessKey(accessKey);
+                // Validate and store credentials
+                if (!accessKey.idToken || !accessKey.accessToken || !accessKey.email) {
+                    throw new Error('Invalid access key format');
+                }
 
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
+                // Store authentication info
+                localStorage.setItem('authToken', accessKey.accessToken);
+                localStorage.setItem('idToken', accessKey.idToken);
+                localStorage.setItem('userId', accessKey.userId);
+                localStorage.setItem('userEmail', accessKey.email);
+
+                if (accessKey.summonerPuuid) {
+                    localStorage.setItem('summonerPuuid', accessKey.summonerPuuid);
+                    localStorage.setItem('summonerName', accessKey.summonerName);
+                    localStorage.setItem('region', accessKey.region);
+                }
+
+                // Redirect based on whether summoner is linked
+                if (accessKey.summonerPuuid) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    document.querySelector('.auth-card').style.display = 'none';
+                    document.getElementById('setupCard').style.display = 'block';
+                }
 
             } catch (error) {
                 console.error('Access key authentication error:', error);
@@ -149,6 +273,24 @@
         });
     }
 
+    async function readAccessKeyFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const accessKey = JSON.parse(e.target.result);
+                    resolve(accessKey);
+                } catch (error) {
+                    reject(new Error('Failed to parse access key file'));
+                }
+            };
+
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
+        });
+    }
+
     // Summoner setup form
     const setupForm = document.getElementById('setupForm');
     if (setupForm) {
@@ -159,11 +301,13 @@
             const region = document.getElementById('region').value;
 
             try {
-                // Link summoner account
-                await linkSummonerAccount(summonerName, region);
+                // For now, just store the summoner info locally
+                // In a full implementation, this would call the RiftSage API
+                const summonerPuuid = generateTempPuuid();
 
-                // Generate initial report
-                await triggerReportGeneration();
+                localStorage.setItem('summonerPuuid', summonerPuuid);
+                localStorage.setItem('summonerName', summonerName);
+                localStorage.setItem('region', region);
 
                 // Redirect to dashboard
                 window.location.href = 'dashboard.html';
@@ -175,143 +319,9 @@
         });
     }
 
-    // Helper functions
-    async function sendMagicLink(email) {
-        // Check if AWS config is available
-        if (typeof AWS_CONFIG === 'undefined') {
-            throw new Error('AWS configuration not loaded');
-        }
-
-        const response = await fetch(`${AWS_CONFIG.apiEndpoint}/auth/magic-link`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to send magic link');
-        }
-
-        return await response.json();
-    }
-
-    async function readAccessKeyFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-                try {
-                    const accessKey = JSON.parse(e.target.result);
-                    if (!accessKey.token || !accessKey.userId) {
-                        reject(new Error('Invalid access key format'));
-                    } else {
-                        resolve(accessKey);
-                    }
-                } catch (error) {
-                    reject(new Error('Failed to parse access key file'));
-                }
-            };
-
-            reader.onerror = () => reject(new Error('Failed to read file'));
-            reader.readAsText(file);
-        });
-    }
-
-    async function authenticateWithAccessKey(accessKey) {
-        if (typeof AWS_CONFIG === 'undefined') {
-            throw new Error('AWS configuration not loaded');
-        }
-
-        const response = await fetch(`${AWS_CONFIG.apiEndpoint}/auth/verify`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(accessKey)
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Authentication failed');
-        }
-
-        const result = await response.json();
-
-        // Store authentication token
-        localStorage.setItem('authToken', result.token);
-        localStorage.setItem('userId', result.userId);
-
-        return result;
-    }
-
-    async function linkSummonerAccount(summonerName, region) {
-        if (typeof AWS_CONFIG === 'undefined') {
-            throw new Error('AWS configuration not loaded');
-        }
-
-        const authToken = localStorage.getItem('authToken');
-        if (!authToken) {
-            throw new Error('Not authenticated');
-        }
-
-        const response = await fetch(`${AWS_CONFIG.apiEndpoint}/summoner/link`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-                summonerName,
-                region
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to link summoner account');
-        }
-
-        const result = await response.json();
-        localStorage.setItem('summonerPuuid', result.puuid);
-        localStorage.setItem('summonerName', summonerName);
-        localStorage.setItem('region', region);
-
-        return result;
-    }
-
-    async function triggerReportGeneration() {
-        if (typeof AWS_CONFIG === 'undefined') {
-            throw new Error('AWS configuration not loaded');
-        }
-
-        const authToken = localStorage.getItem('authToken');
-        const summonerPuuid = localStorage.getItem('summonerPuuid');
-
-        if (!authToken || !summonerPuuid) {
-            throw new Error('Missing authentication or summoner information');
-        }
-
-        const response = await fetch(`${AWS_CONFIG.apiEndpoint}/report/generate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-                playerPuuid: summonerPuuid,
-                year: new Date().getFullYear()
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to generate report');
-        }
-
-        return await response.json();
+    function generateTempPuuid() {
+        // Generate a temporary PUUID for demo purposes
+        return 'demo-' + Math.random().toString(36).substring(2, 15);
     }
 
     function showError(message) {
@@ -323,54 +333,6 @@
             authError.style.display = 'block';
         } else {
             alert(message);
-        }
-    }
-
-    // Check if magic link verification is in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const magicToken = urlParams.get('token');
-
-    if (magicToken) {
-        verifyMagicLink(magicToken);
-    }
-
-    async function verifyMagicLink(token) {
-        const authLoading = document.getElementById('authLoading');
-        const authError = document.getElementById('authError');
-
-        try {
-            authLoading.style.display = 'block';
-
-            const response = await fetch(`${AWS_CONFIG.apiEndpoint}/auth/verify-magic-link`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ token })
-            });
-
-            if (!response.ok) {
-                throw new Error('Invalid or expired magic link');
-            }
-
-            const result = await response.json();
-
-            // Store authentication
-            localStorage.setItem('authToken', result.token);
-            localStorage.setItem('userId', result.userId);
-
-            // Check if summoner is linked
-            if (result.summonerLinked) {
-                window.location.href = 'dashboard.html';
-            } else {
-                // Show setup card
-                document.querySelector('.auth-card').style.display = 'none';
-                document.getElementById('setupCard').style.display = 'block';
-            }
-
-        } catch (error) {
-            authLoading.style.display = 'none';
-            showError(error.message || 'Failed to verify magic link');
         }
     }
 
