@@ -92,6 +92,19 @@ if [ -n "$STACK_NAME" ] && [ -z "$USER_POOL_ID" ]; then
     echo "  ✓ Region: $AWS_REGION"
 fi
 
+# Get Cognito domain
+echo ""
+echo "Getting Cognito User Pool domain..."
+COGNITO_DOMAIN=$(aws cognito-idp describe-user-pool --user-pool-id "$USER_POOL_ID" --region "$AWS_REGION" --query 'UserPool.Domain' --output text 2>/dev/null)
+
+if [ -n "$COGNITO_DOMAIN" ] && [ "$COGNITO_DOMAIN" != "None" ]; then
+    COGNITO_DOMAIN_URL="https://${COGNITO_DOMAIN}.auth.${AWS_REGION}.amazoncognito.com"
+    echo "  ✓ Cognito Domain: $COGNITO_DOMAIN_URL"
+else
+    echo "  ✗ Could not get Cognito domain from User Pool"
+    echo "  This will cause authentication to fail!"
+fi
+
 # If CloudFront URL not in stack outputs, try to find it from CloudFront distributions
 if [ -z "$CLOUDFRONT_URL" ] || [ "$CLOUDFRONT_URL" == "None" ]; then
     echo ""
@@ -179,13 +192,14 @@ cat > /tmp/aws-config.js << EOF
 
 const AWS_CONFIG = {
     // AWS Region
-    region: '$REGION',
+    region: '$AWS_REGION',
 
     // AWS Cognito Configuration
     cognito: {
         userPoolId: '$USER_POOL_ID',
         clientId: '$CLIENT_ID',
-        identityPoolId: '$IDENTITY_POOL_ID'
+        identityPoolId: '$IDENTITY_POOL_ID',
+        domain: '$COGNITO_DOMAIN_URL'
     },
 
     // API Gateway Endpoint (RiftSage API)

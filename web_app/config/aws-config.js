@@ -12,7 +12,8 @@ const AWS_CONFIG = {
     cognito: {
         userPoolId: 'USER_POOL_ID_PLACEHOLDER',
         clientId: 'CLIENT_ID_PLACEHOLDER',
-        identityPoolId: 'IDENTITY_POOL_ID_PLACEHOLDER'
+        identityPoolId: 'IDENTITY_POOL_ID_PLACEHOLDER',
+        domain: 'COGNITO_DOMAIN_PLACEHOLDER'
     },
 
     // API Gateway Endpoint

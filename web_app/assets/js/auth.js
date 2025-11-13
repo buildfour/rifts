@@ -17,9 +17,13 @@
             return;
         }
 
-        // Build Cognito domain URL
-        const accountId = AWS_CONFIG.cognito.userPoolId.split('_')[0];
-        cognitoDomain = `https://summoners-chronicle-${AWS_CONFIG.app.environment}-${accountId}.auth.${AWS_CONFIG.region}.amazoncognito.com`;
+        // Get Cognito domain URL from config
+        cognitoDomain = AWS_CONFIG.cognito.domain;
+
+        if (!cognitoDomain) {
+            showError('Cognito domain not configured. Please contact support.');
+            return;
+        }
 
         // Check if returning from OAuth callback
         handleOAuthCallback();
