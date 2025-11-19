@@ -1,6 +1,6 @@
 """
 RiftSage AI Agent - Bedrock Generation Lambda Function
-Generates personalized insights using Amazon Bedrock (Claude AI)
+Generates personalized insights using Amazon Bedrock (Llama 3.1 70B)
 """
 
 import json
@@ -26,7 +26,7 @@ INSIGHTS_TABLE_NAME = os.environ.get('INSIGHTS_TABLE')
 REPORTS_BUCKET = os.environ.get('REPORTS_BUCKET')
 
 # Bedrock model configuration
-BEDROCK_MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0'
+BEDROCK_MODEL_ID = 'meta.llama3-1-70b-instruct-v1:0'
 MAX_TOKENS = 4000
 TEMPERATURE = 0.3
 
@@ -38,16 +38,16 @@ class BedrockInsightGenerator:
         self.model_id = BEDROCK_MODEL_ID
 
     def call_bedrock(self, prompt: str, max_tokens: int = MAX_TOKENS) -> str:
-        """Call Bedrock API with Claude model"""
+        """Call Bedrock API with Llama 3.1 70B model"""
         try:
+            # Format prompt for Llama 3.1 with instruction template
+            formatted_prompt = f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+
             request_body = {
-                'anthropic_version': 'bedrock-2023-05-31',
-                'max_tokens': max_tokens,
+                'prompt': formatted_prompt,
+                'max_gen_len': max_tokens,
                 'temperature': TEMPERATURE,
-                'messages': [{
-                    'role': 'user',
-                    'content': prompt
-                }]
+                'top_p': 0.9
             }
 
             response = bedrock_runtime.invoke_model(
@@ -56,7 +56,7 @@ class BedrockInsightGenerator:
             )
 
             response_body = json.loads(response['body'].read())
-            return response_body['content'][0]['text']
+            return response_body['generation']
 
         except Exception as e:
             logger.error(f"Error calling Bedrock: {str(e)}")

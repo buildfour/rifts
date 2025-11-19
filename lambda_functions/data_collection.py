@@ -6,6 +6,7 @@ Fetches match history from Riot API and stores in S3
 import json
 import os
 import boto3
+import requests
 import time
 from datetime import datetime
 from typing import Dict, List, Any
@@ -26,6 +27,10 @@ DATA_BUCKET = os.environ.get('DATA_BUCKET')
 PLAYERS_TABLE_NAME = os.environ.get('PLAYERS_TABLE')
 CACHE_TABLE_NAME = os.environ.get('CACHE_TABLE')
 RIOT_API_SECRET_NAME = os.environ.get('RIOT_API_SECRET')
+
+# Dataset configuration
+TARGET_PLAYER_COUNT = 500  # Target dataset size for ML training and analysis
+MATCHES_PER_PLAYER = 200   # Target matches per player for quality insights
 
 # Rate limiting configuration
 RATE_LIMITS = {
@@ -73,8 +78,6 @@ class RiotAPIClient:
 
     def get_summoner_by_puuid(self, region: str, puuid: str) -> Dict:
         """Get summoner information by PUUID"""
-        import requests
-
         self._rate_limit()
 
         url = f"{self.BASE_URLS[region]}/lol/summoner/v4/summoners/by-puuid/{puuid}"
@@ -86,10 +89,8 @@ class RiotAPIClient:
         return response.json()
 
     def get_match_history(self, region: str, puuid: str, start_time: int = None,
-                         end_time: int = None, queue: int = 420, count: int = 100) -> List[str]:
+                         end_time: int = None, queue: int = 420, count: int = 100, start: int = 0) -> List[str]:
         """Get match IDs for a player"""
-        import requests
-
         self._rate_limit()
 
         # Convert region to routing value
@@ -98,7 +99,8 @@ class RiotAPIClient:
 
         params = {
             'queue': queue,  # 420 = Ranked Solo/Duo
-            'count': count
+            'count': min(count, 100),  # API max is 100 per request
+            'start': start
         }
 
         if start_time:
@@ -115,8 +117,6 @@ class RiotAPIClient:
 
     def get_match_details(self, region: str, match_id: str) -> Dict:
         """Get detailed match information"""
-        import requests
-
         self._rate_limit()
 
         routing = self._get_routing_value(region)
@@ -251,17 +251,31 @@ def collect_player_matches(puuid: str, region: str, year: int = None) -> Dict:
     end_time = int(datetime(year, 12, 31, 23, 59, 59).timestamp())
 
     try:
-        # Get match history
+        # Get match history with pagination to fetch up to MATCHES_PER_PLAYER
         logger.info(f"Fetching match history for {puuid} in {region} for year {year}")
-        match_ids = riot_client.get_match_history(
-            region=region,
-            puuid=puuid,
-            start_time=start_time,
-            end_time=end_time,
-            count=100
-        )
+        match_ids = []
 
-        logger.info(f"Found {len(match_ids)} matches")
+        # Fetch in batches of 100 (API limit) until we reach target or no more matches
+        for start_index in range(0, MATCHES_PER_PLAYER, 100):
+            batch = riot_client.get_match_history(
+                region=region,
+                puuid=puuid,
+                start_time=start_time,
+                end_time=end_time,
+                count=100,
+                start=start_index
+            )
+
+            if not batch:
+                break  # No more matches available
+
+            match_ids.extend(batch)
+            logger.info(f"Fetched batch {start_index//100 + 1}: {len(batch)} matches")
+
+            if len(batch) < 100:
+                break  # Last batch, no more matches available
+
+        logger.info(f"Found {len(match_ids)} total matches")
 
         # Collect each match
         collected_matches = []
